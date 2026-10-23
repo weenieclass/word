@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단어의 짜임 마스터 - 고등학교 국어 학습 웹앱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: #f8fafc;
+        }
+        .quadrant-dropzone {
+            min-height: 140px;
+            transition: all 0.2s ease;
+        }
+        .quadrant-dropzone.drag-over {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+        }
+        .draggable-card {
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+        .draggable-card:active {
+            cursor: grabbing;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i data-lucide="book-open" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">단어의 짜임 마스터</h1>
+                    <p class="text-xs text-indigo-200">고등학교 국어 | 형태소 & 단어의 형성</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex bg-indigo-950 p-1 rounded-xl text-sm font-medium">
+                <button onclick="switchTab('morphology')" id="tab-btn-morphology" class="tab-btn px-4 py-2 rounded-lg transition-all flex items-center space-x-2 bg-indigo-600 text-white">
+                    <i data-lucide="grid" class="w-4 h-4"></i>
+                    <span>1. 형태소 지도</span>
+                </button>
+                <button onclick="switchTab('assembly')" id="tab-btn-assembly" class="tab-btn px-4 py-2 rounded-lg transition-all flex items-center space-x-2 text-indigo-300 hover:text-white">
+                    <i data-lucide="blocks" class="w-4 h-4"></i>
+                    <span>2. 단어 조립소</span>
+                </button>
+                <button onclick="switchTab('quiz')" id="tab-btn-quiz" class="tab-btn px-4 py-2 rounded-lg transition-all flex items-center space-x-2 text-indigo-300 hover:text-white">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    <span>3. 개념 파괴 퀴즈</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- TAB 1: 형태소 지도 & 실습 -->
+        <section id="tab-morphology" class="tab-content block space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="layout-grid" class="text-indigo-600"></i>
+                            형태소 4분면 분류 실습
+                        </h2>
+                        <p class="text-slate-600 text-sm mt-1">
+                            형태소 카드를 끌어서(Drag & Drop) 또는 클릭하여 알맞은 위치에 배치해 보세요!
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="resetMorphologyPractice()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 초기화
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Concept Note Box -->
+                <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-xl text-xs sm:text-sm text-indigo-900 mb-6 space-y-1">
+                    <div class="font-bold text-indigo-950 flex items-center gap-1">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-indigo-600"></i> 핵심 오개념 주의보!
+                    </div>
+                    <p>• <strong>용언의 어간(예: 먹-, 웃-)</strong>: 혼자 쓸 수 없지만 실질적 뜻이 있음 $\rightarrow$ <span class="bg-indigo-200 px-1.5 py-0.5 rounded font-semibold text-indigo-900">의존 + 실질</span></p>
+                    <p>• <strong>조사(예: 이/가, 은/는)</strong>: 홀로 쓸 수 없고 문법적 관계만 표시 $\rightarrow$ <span class="bg-indigo-200 px-1.5 py-0.5 rounded font-semibold text-indigo-900">의존 + 형식</span></p>
+                </div>
+
+                <!-- Unassigned Morpheme Cards Container -->
+                <div class="mb-6 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">분류할 형태소 카드를 선택하거나 드래그하세요</span>
+                    <div id="card-pool" class="flex flex-wrap gap-2 min-h-[50px] items-center">
+                        <!-- Cards will be dynamically rendered here -->
+                    </div>
+                </div>
+
+                <!-- 4-Quadrant Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Q1: 자립 + 실질 -->
+                    <div class="bg-emerald-50/60 border-2 border-emerald-200 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 자립 + 실질 형태소
+                                </span>
+                                <span class="text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">명사, 대명사, 수사, 관형사, 부사, 감탄사</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-3">혼자 쓸 수 있으며 구체적인 사물이나 상태의 뜻을 가짐</p>
+                        </div>
+                        <div id="dropzone-free-real" data-type="free-real" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="quadrant-dropzone bg-white/80 border border-emerald-200 rounded-lg p-2 flex flex-wrap gap-2 align-content-start"></div>
+                    </div>
+
+                    <!-- Q2: 자립 + 형식 (이론상 없음) -->
+                    <div class="bg-slate-100/60 border-2 border-slate-200 rounded-xl p-4 flex flex-col justify-between opacity-70">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-slate-600 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> 자립 + 형식 형태소
+                                </span>
+                                <span class="text-xs text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">국어에 존재 안 함</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-3">자립 형태소는 모두 실질적 의미를 가지고 있음</p>
+                        </div>
+                        <div class="bg-slate-200/50 rounded-lg p-2 h-[100px] flex items-center justify-center text-xs text-slate-400 italic">
+                            (해당하는 형태소가 없습니다)
+                        </div>
+                    </div>
+
+                    <!-- Q3: 의존 + 실질 -->
+                    <div class="bg-blue-50/60 border-2 border-blue-200 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-blue-900 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 의존 + 실질 형태소
+                                </span>
+                                <span class="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">★ 용언의 어간</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-3">혼자 쓸 수는 없지만 실질적인 의미(동작, 상태)를 지님</p>
+                        </div>
+                        <div id="dropzone-bound-real" data-type="bound-real" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="quadrant-dropzone bg-white/80 border border-blue-200 rounded-lg p-2 flex flex-wrap gap-2 align-content-start"></div>
+                    </div>
+
+                    <!-- Q4: 의존 + 형식 -->
+                    <div class="bg-purple-50/60 border-2 border-purple-200 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-purple-900 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> 의존 + 형식(문법) 형태소
+                                </span>
+                                <span class="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">조사, 어미, 접사</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-3">다른 말에 붙어 쓰이며 문법적 관계나 의미를 덧붙임</p>
+                        </div>
+                        <div id="dropzone-bound-formal" data-type="bound-formal" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" class="quadrant-dropzone bg-white/80 border border-purple-200 rounded-lg p-2 flex flex-wrap gap-2 align-content-start"></div>
+                    </div>
+                </div>
+
+                <!-- Feedback Message Box -->
+                <div id="morph-feedback" class="mt-4 p-4 rounded-xl hidden transition-all duration-300"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: 단어 조립소 (합성어 vs 파생어 시뮬레이터) -->
+        <section id="tab-assembly" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="cpu" class="text-indigo-600"></i>
+                        단어 조립소 & 가상 시뮬레이터
+                    </h2>
+                    <p class="text-slate-600 text-sm mt-1">
+                        어근과 접사 블록을 조합하여 단어를 만들고, 단어의 구조와 복합어 유형(합성어/파생어)을 관찰해 보세요!
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Block Selector -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-600"></i> 블록 선택하기
+                        </h3>
+                        
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 block mb-2">어근 (실질적 의미를 가진 중심 부분)</span>
+                            <div class="flex flex-wrap gap-2" id="root-blocks">
+                                <!-- Root blocks injected by JS -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 block mb-2">접사 (뜻을 제한하거나 범위를 더하는 부분)</span>
+                            <div class="flex flex-wrap gap-2" id="affix-blocks">
+                                <!-- Affix blocks injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle: Assembly Canvas & Workbench -->
+                    <div class="lg:col-span-2 bg-indigo-50/50 p-6 rounded-xl border border-indigo-100 flex flex-col justify-between space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="font-bold text-indigo-900 text-sm">조립 작업대</span>
+                                <button onclick="clearWorkbench()" class="text-xs text-slate-500 hover:text-red-600 flex items-center gap-1">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 비우기
+                                </button>
+                            </div>
+
+                            <!-- Selected Blocks Slot Area -->
+                            <div id="workbench-slots" class="min-h-[90px] bg-white border-2 border-dashed border-indigo-300 rounded-xl p-4 flex items-center justify-center gap-3">
+                                <span class="text-sm text-slate-400 italic">왼쪽에서 블록을 터치하여 조합해보세요</span>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Result Card -->
+                        <div id="assembly-result" class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm transition-all hidden">
+                            <!-- Analysis will render here -->
+                        </div>
+
+                        <!-- Presets / Quick Example Test -->
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">추천 조합 예시 실험</span>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="loadPreset('돌', '다리')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700">돌 + 다리</button>
+                                <button onclick="loadPreset('맨', '발')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700">맨 + 발</button>
+                                <button onclick="loadPreset('풋', '사과')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700">풋 + 사과</button>
+                                <button onclick="loadPreset('지우', '개')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700">지우 + 개</button>
+                                <button onclick="loadPreset('힘', '겹다')" class="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700">힘 + 겹다</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Self-Check Questions -->
+                <div class="mt-8 border-t pt-6 space-y-4">
+                    <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                        <i data-lucide="help-circle" class="text-indigo-600"></i> 탐구 질문: 스스로 확인하기
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p class="text-xs font-bold text-indigo-700 mb-1">질문 1. '풋사과'의 '풋-'은 강한 뜻이 느껴지는데 왜 어근이 아닐까요?</p>
+                            <p class="text-xs text-slate-600">
+                                '풋-'은 '덜 익은'이라는 특정한 뜻을 덧붙여주지만, 혼자서 독립적으로 쓰일 수 없으며 항상 명사 앞에만 붙는 <strong>접두사</strong>이기 때문입니다. 따라서 파생어입니다.
+                            </p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <p class="text-xs font-bold text-indigo-700 mb-1">질문 2. '지우개'에서 '지우-'는 용언의 어간인데 어근이 될 수 있나요?</p>
+                            <p class="text-xs text-slate-600">
+                                네! 용언의 어간은 실질적 의미를 지니고 있으므로 단어를 형성할 때 <strong>어근</strong>의 역할을 합니다. 여기에 도구를 만드는 접미사 '-개'가 붙어 명사 파생어가 됩니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Rule Footer -->
+                <p class="text-center text-xs text-slate-400 mt-6 pt-4 border-t border-slate-100">
+                    ※ 본 시뮬레이션의 형태소 분석 및 단어 형성 법칙은 대한민국 고등학교 국어 교과서(학교 문법) 체계를 따릅니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- TAB 3: 실전 오개념 파괴 퀴즈 -->
+        <section id="tab-quiz" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
+                
+                <!-- Quiz Header / Progress -->
+                <div id="quiz-header" class="mb-6 pb-4 border-b flex justify-between items-center">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide">실전 개념 파괴 퀴즈</span>
+                        <h2 class="text-xl font-bold text-slate-900" id="quiz-progress-text">문제 1 / 8</h2>
+                    </div>
+                    <div class="w-32 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                        <div id="quiz-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 12.5%;"></div>
+                    </div>
+                </div>
+
+                <!-- Active Question Container -->
+                <div id="quiz-container" class="space-y-6">
+                    <!-- Dynamic Question Area -->
+                    <div class="space-y-3">
+                        <span id="quiz-category-tag" class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold">카테고리</span>
+                        <h3 id="quiz-question-text" class="text-lg font-bold text-slate-900 leading-snug">질문 텍스트가 표시됩니다.</h3>
+                    </div>
+
+                    <!-- Options (Choices 1-4) -->
+                    <div id="quiz-options" class="space-y-2.5">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Instant Explanation Table Container -->
+                    <div id="quiz-explanation-box" class="hidden mt-6 space-y-4 pt-4 border-t border-slate-200">
+                        <div id="quiz-feedback-banner" class="p-3 rounded-lg flex items-center gap-2 font-bold text-sm">
+                            <!-- Feedback status -->
+                        </div>
+
+                        <!-- Breakdown Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse border border-slate-200 rounded-lg overflow-hidden">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700">
+                                        <th class="p-2.5 border border-slate-200 w-16 text-center">선지</th>
+                                        <th class="p-2.5 border border-slate-200 w-16 text-center">정오</th>
+                                        <th class="p-2.5 border border-slate-200">이 선지를 고르는 학생의 오개념 착각</th>
+                                        <th class="p-2.5 border border-slate-200">바로잡기 (바른 문법 개념)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quiz-explanation-table-body">
+                                    <!-- Table Rows injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button id="next-question-btn" onclick="nextQuestion()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                                <span>다음 문제로</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Completion Summary Result Screen -->
+                <div id="quiz-result-screen" class="hidden text-center space-y-6 py-6">
+                    <div class="inline-flex p-4 bg-indigo-50 text-indigo-600 rounded-full mb-2">
+                        <i data-lucide="award" class="w-12 h-12"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">퀴즈 완료! 고생하셨습니다.</h2>
+                    
+                    <div class="flex justify-center items-center gap-6">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 w-36">
+                            <span class="text-xs text-slate-500 block mb-1">최종 점수</span>
+                            <span id="final-score" class="text-3xl font-extrabold text-indigo-600">00점</span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 w-36">
+                            <span class="text-xs text-slate-500 block mb-1">맞힌 개수</span>
+                            <span id="final-correct-count" class="text-3xl font-extrabold text-emerald-600">0 / 8</span>
+                        </div>
+                    </div>
+
+                    <!-- Weakness Diagnostic Report -->
+                    <div class="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 text-left max-w-lg mx-auto space-y-3">
+                        <h3 class="font-bold text-indigo-950 text-sm flex items-center gap-1.5">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-600"></i> 오개념 분석 분석 리포트
+                        </h3>
+                        <div id="misconception-report" class="text-xs text-indigo-900 space-y-2">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-3 pt-4">
+                        <button onclick="restartQuiz()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition flex items-center gap-2">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 퀴즈 다시 풀기
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Global Application Logic -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // TAB SWITCHING LOGIC
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('text-indigo-300');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('bg-indigo-600', 'text-white');
+            activeBtn.classList.remove('text-indigo-300');
+        }
+
+        /* ==========================================================================
+           TAB 1: MORPHEME PRACTICE LOGIC
+           ========================================================================== */
+        const initialCards = [
+            { id: 'm1', text: '하늘', type: 'free-real', tip: '명사: 혼자 쓸 수 있고 실질적 의미 지님' },
+            { id: 'm2', text: '나무', type: 'free-real', tip: '명사: 혼자 쓸 수 있고 실질적 의미 지님' },
+            { id: 'm3', text: '웃-', type: 'bound-real', tip: '★용언 어간: 혼자 못 쓰지만 동작/상태의 실질 의미!' },
+            { id: 'm4', text: '예쁘-', type: 'bound-real', tip: '★용언 어간: 어미가 필요하지만 실질적 의미 보유' },
+            { id: 'm5', text: '을/를', type: 'bound-formal', tip: '조사: 홀로 못 쓰며 문법적 목적어 관계 표시' },
+            { id: 'm6', text: '-었-', type: 'bound-formal', tip: '선어말어미: 혼자 못 쓰며 과거 시제 문법 의미 표시' },
+            { id: 'm7', text: '-다', type: 'bound-formal', tip: '어말어미: 혼자 못 쓰며 문장 종결 문법 기능' },
+            { id: 'm8', text: '풋-', type: 'bound-formal', tip: '접두사: 단독 사용 불가, 덜 익은의 뜻만 보태줌' }
+        ];
+
+        let currentCards = [...initialCards];
+        let selectedCardId = null;
+
+        function renderMorphologyCards() {
+            const pool = document.getElementById('card-pool');
+            const dzFreeReal = document.getElementById('dropzone-free-real');
+            const dzBoundReal = document.getElementById('dropzone-bound-real');
+            const dzBoundFormal = document.getElementById('dropzone-bound-formal');
+
+            pool.innerHTML = '';
+            dzFreeReal.innerHTML = '';
+            dzBoundReal.innerHTML = '';
+            dzBoundFormal.innerHTML = '';
+
+            currentCards.forEach(card => {
+                const el = createCardElement(card);
+                if (!card.currentZone) {
+                    pool.appendChild(el);
+                } else if (card.currentZone === 'free-real') {
+                    dzFreeReal.appendChild(el);
+                } else if (card.currentZone === 'bound-real') {
+                    dzBoundReal.appendChild(el);
+                } else if (card.currentZone === 'bound-formal') {
+                    dzBoundFormal.appendChild(el);
+                }
+            });
+        }
+
+        function createCardElement(card) {
+            const cardEl = document.createElement('div');
+            cardEl.className = `draggable-card px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition border flex items-center gap-1 ${
+                selectedCardId === card.id ? 'ring-2 ring-indigo-500 bg-indigo-100 border-indigo-400' : 'bg-white border-slate-200 hover:border-indigo-300'
+            }`;
+            cardEl.draggable = true;
+            cardEl.innerText = card.text;
+            
+            // Drag Events
+            cardEl.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', card.id);
+                selectedCardId = card.id;
+            };
+
+            // Touch / Click Support for Mobile
+            cardEl.onclick = (e) => {
+                e.stopPropagation();
+                if (selectedCardId === card.id) {
+                    selectedCardId = null;
+                } else {
+                    selectedCardId = card.id;
+                }
+                renderMorphologyCards();
+            };
+
+            return cardEl;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const cardId = e.dataTransfer.getData('text/plain') || selectedCardId;
+            const targetZone = e.currentTarget.getAttribute('data-type');
+            if (cardId && targetZone) {
+                placeCardInZone(cardId, targetZone);
+            }
+        }
+
+        // Zone Click Support
+        document.querySelectorAll('.quadrant-dropzone').forEach(zone => {
+            zone.onclick = () => {
+                if (selectedCardId) {
+                    const targetZone = zone.getAttribute('data-type');
+                    placeCardInZone(selectedCardId, targetZone);
+                }
+            };
+        });
+
+        function placeCardInZone(cardId, targetZone) {
+            const card = currentCards.find(c => c.id === cardId);
+            if (card) {
+                card.currentZone = targetZone;
+                selectedCardId = null;
+                renderMorphologyCards();
+                checkMorphologyAnswer(card, targetZone);
+            }
+        }
+
+        function checkMorphologyAnswer(card, placedZone) {
+            const feedbackBox = document.getElementById('morph-feedback');
+            feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-900', 'bg-rose-100', 'text-rose-900');
+
+            if (card.type === placedZone) {
+                feedbackBox.classList.add('bg-emerald-100', 'text-emerald-900');
+                feedbackBox.innerHTML = `
+                    <div class="flex items-center gap-2 font-bold text-sm mb-1">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i> 정답입니다! (${card.text})
+                    </div>
+                    <p class="text-xs">${card.tip}</p>
+                `;
+            } else {
+                feedbackBox.classList.add('bg-rose-100', 'text-rose-900');
+                feedbackBox.innerHTML = `
+                    <div class="flex items-center gap-2 font-bold text-sm mb-1">
+                        <i data-lucide="x-circle" class="w-4 h-4 text-rose-600"></i> 다시 생각해 보세요! (${card.text})
+                    </div>
+                    <p class="text-xs">힌트: ${card.tip}</p>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        function resetMorphologyPractice() {
+            currentCards = initialCards.map(c => ({ ...c, currentZone: null }));
+            selectedCardId = null;
+            document.getElementById('morph-feedback').classList.add('hidden');
+            renderMorphologyCards();
+        }
+
+        /* ==========================================================================
+           TAB 2: WORD ASSEMBLY SIMULATOR LOGIC
+           ========================================================================== */
+        const rootsList = [
+            { text: '돌', type: 'root', morph: '자립+실질' },
+            { text: '다리', type: 'root', morph: '자립+실질' },
+            { text: '발', type: 'root', morph: '자립+실질' },
+            { text: '사과', type: 'root', morph: '자립+실질' },
+            { text: '지우', type: 'root', morph: '의존+실질(어간)' },
+            { text: '힘', type: 'root', morph: '자립+실질' },
+            { text: '겹다', type: 'root', morph: '의존+실질(어간)' }
+        ];
+
+        const affixesList = [
+            { text: '맨', type: 'prefix', morph: '의존+형식(접두사)', meaning: '다른 것이 없는' },
+            { text: '풋', type: 'prefix', morph: '의존+형식(접두사)', meaning: '처음 나온/미숙한' },
+            { text: '개', type: 'suffix', morph: '의존+형식(접미사)', meaning: '도구의 의미/명사화' }
+        ];
+
+        let selectedWorkbenchBlocks = [];
+
+        function renderAssemblyBlocks() {
+            const rootContainer = document.getElementById('root-blocks');
+            const affixContainer = document.getElementById('affix-blocks');
+
+            rootContainer.innerHTML = '';
+            affixContainer.innerHTML = '';
+
+            rootsList.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = "px-3 py-1.5 bg-white border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 rounded-lg text-xs font-bold text-slate-800 transition";
+                btn.innerText = item.text;
+                btn.onclick = () => addBlockToWorkbench(item);
+                rootContainer.appendChild(btn);
+            });
+
+            affixesList.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = "px-3 py-1.5 bg-white border border-purple-200 hover:border-purple-500 hover:bg-purple-50 rounded-lg text-xs font-bold text-slate-800 transition";
+                btn.innerText = item.text;
+                btn.onclick = () => addBlockToWorkbench(item);
+                affixContainer.appendChild(btn);
+            });
+        }
+
+        function addBlockToWorkbench(block) {
+            if (selectedWorkbenchBlocks.length >= 2) {
+                alert('블록은 최대 2개까지 조합하여 실험할 수 있습니다.');
+                return;
+            }
+            selectedWorkbenchBlocks.push(block);
+            updateWorkbenchUI();
+        }
+
+        function clearWorkbench() {
+            selectedWorkbenchBlocks = [];
+            updateWorkbenchUI();
+        }
+
+        function loadPreset(word1, word2) {
+            selectedWorkbenchBlocks = [];
+            const b1 = rootsList.find(r => r.text === word1) || affixesList.find(a => a.text === word1);
+            const b2 = rootsList.find(r => r.text === word2) || affixesList.find(a => a.text === word2);
+            if (b1) selectedWorkbenchBlocks.push(b1);
+            if (b2) selectedWorkbenchBlocks.push(b2);
+            updateWorkbenchUI();
+        }
+
+        function updateWorkbenchUI() {
+            const slotArea = document.getElementById('workbench-slots');
+            const resultCard = document.getElementById('assembly-result');
+
+            if (selectedWorkbenchBlocks.length === 0) {
+                slotArea.innerHTML = `<span class="text-sm text-slate-400 italic">왼쪽에서 블록을 터치하여 조합해보세요</span>`;
+                resultCard.classList.add('hidden');
+                return;
+            }
+
+            slotArea.innerHTML = selectedWorkbenchBlocks.map((b, idx) => `
+                <div class="px-4 py-2 rounded-xl text-base font-extrabold shadow-sm border flex items-center gap-2 ${
+                    b.type === 'root' ? 'bg-indigo-100 text-indigo-900 border-indigo-300' : 'bg-purple-100 text-purple-900 border-purple-300'
+                }">
+                    <span>${b.text}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded ${b.type === 'root' ? 'bg-indigo-200 text-indigo-800' : 'bg-purple-200 text-purple-800'}">
+                        ${b.type === 'root' ? '어근' : '접사'}
+                    </span>
+                </div>
+                ${idx === 0 && selectedWorkbenchBlocks.length > 1 ? '<i data-lucide="plus" class="w-5 h-5 text-indigo-400"></i>' : ''}
+            `).join('');
+
+            lucide.createIcons();
+
+            if (selectedWorkbenchBlocks.length === 2) {
+                analyzeAssembly(selectedWorkbenchBlocks[0], selectedWorkbenchBlocks[1]);
+            } else {
+                resultCard.classList.add('hidden');
+            }
+        }
+
+        function analyzeAssembly(b1, b2) {
+            const resultCard = document.getElementById('assembly-result');
+            resultCard.classList.remove('hidden');
+
+            const word = b1.text + b2.text;
+            let wordType = '';
+            let explanation = '';
+            let badgeBg = '';
+
+            if (b1.type === 'root' && b2.type === 'root') {
+                wordType = '합성어 (복합어)';
+                badgeBg = 'bg-emerald-500 text-white';
+                explanation = `실질적 의미를 가진 두 어근 <strong>'${b1.text}'</strong>(어근)과 <strong>'${b2.text}'</strong>(어근)이 결합한 <strong>합성어</strong>입니다.`;
+            } else {
+                wordType = '파생어 (복합어)';
+                badgeBg = 'bg-purple-600 text-white';
+                const affix = b1.type !== 'root' ? b1 : b2;
+                const root = b1.type === 'root' ? b1 : b2;
+                explanation = `어근 <strong>'${root.text}'</strong>에 뜻을 보태거나 품사를 바꾸는 접사 <strong>'${affix.text}'</strong>가 결합된 <strong>파생어</strong>입니다.`;
+            }
+
+            resultCard.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-lg font-extrabold text-slate-900">결과 단어: "${word}"</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${badgeBg}">${wordType}</span>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed mb-3">${explanation}</p>
+                <div class="bg-slate-50 p-2.5 rounded-lg border text-xs text-slate-500 space-y-1">
+                    <div>• <strong>${b1.text}</strong>: ${b1.morph}</div>
+                    <div>• <strong>${b2.text}</strong>: ${b2.morph}</div>
+                </div>
+            `;
+        }
+
+        /* ==========================================================================
+           TAB 3: QUIZ LOGIC WITH MISCONCEPTION TABLE
+           ========================================================================== */
+        const quizData = [
+            {
+                id: 1,
+                category: '형태소 (용언 어간)',
+                question: '문장 "아기가 밝게 웃는다."에서 밑줄 친 \'웃-\'에 대한 올바른 설명은?',
+                options: [
+                    '자립 형태소이자 실질 형태소이다.',
+                    '의존 형태소이자 실질 형태소이다.',
+                    '의존 형태소이자 형식 형태소이다.',
+                    '자립 형태소이자 형식 형태소이다.'
+                ],
+                correct: 1,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "'웃다'는 동작의 뜻이 명확하므로 혼자 쓸 수 있는 자립 형태소라고 착각함.", fix: "어간 '웃-'은 혼자 쓰일 수 없고 반드시 어미('-다', '-고')가 붙어야 하므로 '의존 형태소'입니다." },
+                    { choice: '②번', status: 'O (정답)', thought: "정확한 이해! 혼자 쓰일 수 없지만 동작이라는 구체적 의미를 지님.", fix: "용언의 어간은 대표적인 '의존 + 실질 형태소'입니다." },
+                    { choice: '③번', status: 'X', thought: "혼자 쓰일 수 없으면 무조건 문법 기능만 하는 형식 형태소라고 이분법적으로 오해함.", fix: "의존 형태소 중에서도 어간은 실질적 의미를 가지고 있으므로 '실질 형태소'에 속합니다." },
+                    { choice: '④번', status: 'X', thought: "어간과 어미, 자립과 형식을 모두 혼동한 상태.", fix: "어간 '웃-'은 의존 형태소이자 실질 형태소입니다." }
+                ],
+                misconceptionType: '어간의 형태소 성격 오해'
+            },
+            {
+                id: 2,
+                category: '형태소 (조사)',
+                question: '문장 "구름이 흐른다."에서 주격 조사 \'이\'에 대한 설명으로 옳은 것은?',
+                options: [
+                    '의존 형태소이자 형식 형태소이다.',
+                    '자립 형태소이자 실질 형태소이다.',
+                    '의존 형태소이자 실질 형태소이다.',
+                    '자립 형태소이자 형식 형태소이다.'
+                ],
+                correct: 0,
+                misconceptions: [
+                    { choice: '①번', status: 'O (정답)', thought: "정확한 이해! 조사는 홀로 쓰이지 못하며 문법적 관계만 나타냄.", fix: "조사는 의존 형태소이자 형식(문법) 형태소입니다." },
+                    { choice: '②번', status: 'X', thought: "조사가 단어로 분류되므로 자립 형태소라고 착각함.", fix: "조사는 단어이지만 자립성이 없어 앞말에 붙어 쓰는 '의존 형태소'입니다." },
+                    { choice: '③번', status: 'X', thought: "주어를 만드는 중요한 역할을 하므로 실질적 의미가 있다고 착각함.", fix: "조사는 구체적 사물/상태의 뜻이 없으므로 문법적 기능만 하는 '형식 형태소'입니다." },
+                    { choice: '④번', status: 'X', thought: "형식 형태소인 것은 맞췄으나 자립성이 있다고 잘못 판단함.", fix: "조사는 의존 형태소입니다." }
+                ],
+                misconceptionType: '조사의 형태소 성격 오해'
+            },
+            {
+                id: 3,
+                category: '형태소 (어미)',
+                question: '문장 "꽃이 피었다"에서 과거 시제 선어말어미 \'-었-\'에 대한 설명으로 알맞은 것은?',
+                options: [
+                    '의존 형태소이자 실질 형태소이다.',
+                    '자립 형태소이자 형식 형태소이다.',
+                    '의존 형태소이자 형식 형태소이다.',
+                    '자립 형태소이자 실질 형태소이다.'
+                ],
+                correct: 2,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "'과거'라는 시간적 뜻을 더해주므로 실질 형태소라고 착각함.", fix: "시간을 나타내는 시제 어미도 실질적 의미가 아니라 문법적 기능을 담당하는 '형식 형태소'입니다." },
+                    { choice: '②번', status: 'X', thought: "어미를 독립된 형태소로 오인함.", fix: "어미는 혼자 쓰일 수 없는 '의존 형태소'입니다." },
+                    { choice: '③번', status: 'O (정답)', thought: "정확한 이해! 어미는 문법적 기능을 더해주는 의존/형식 형태소임.", fix: "모든 어미는 의존 형태소이자 형식 형태소입니다." },
+                    { choice: '④번', status: 'X', thought: "자립성과 실질성을 모두 잘못 파악함.", fix: "'-었-'은 의존 형태소이자 형식 형태소입니다." }
+                ],
+                misconceptionType: '어미의 문법적 성격 오해'
+            },
+            {
+                id: 4,
+                category: '형태소 개수 세기',
+                question: '"날씨가 매우 맑다."에서 실질 형태소의 개수는 총 몇 개인가?',
+                options: ['2개', '3개', '4개', '5개'],
+                correct: 1,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "어간 '맑-'을 빼고 명사/부사('날씨', '매우') 2개만 세는 오류.", fix: "용언의 어간 '맑-'도 실질적 의미를 가진 실질 형태소입니다!" },
+                    { choice: '②번', status: 'O (정답)', thought: "'날씨'(명사), '매우'(부사), '맑-'(어간) 총 3개를 바르게 파악함.", fix: "정답! (가=조사, -다=어미는 형식 형태소)" },
+                    { choice: '③번', status: 'X', thought: "조사 '가' 또는 어미 '-다'까지 실질 형태소에 포함시키는 오류.", fix: "조사와 어미는 형식 형태소에 해당합니다." },
+                    { choice: '④번', status: 'X', thought: "문장의 모든 형태소(날씨, 가, 매우, 맑, 다)를 전부 실질 형태소로 착각.", fix: "형식 형태소를 구분해야 합니다." }
+                ],
+                misconceptionType: '실질 형태소 분석 및 개수 오류'
+            },
+            {
+                id: 5,
+                category: '어근과 접사',
+                question: '다음 밑줄 친 부분 중 \'어근\'이 아니라 단어에 뜻을 보태는 \'접사\'인 것은?',
+                options: ['밤나무', '새까맣다', '손수건', '작은집'],
+                correct: 1,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "'밤'을 접사로 착각함.", fix: "'밤'은 열매를 뜻하는 자립 어근입니다 (밤+나무 = 합성어)." },
+                    { choice: '②번', status: 'O (정답)', thought: "'새-'의 강한 강조 의미를 구별하고 접두사임을 인지함.", fix: "'새-'는 '매우 매우'의 뜻을 더해주는 접두사이므로 파생어입니다." },
+                    { choice: '③번', status: 'X', thought: "'손'을 접사로 오인함.", fix: "'손'은 신체 부위를 뜻하는 자립 어근입니다 (손+수건 = 합성어)." },
+                    { choice: '④번', status: 'X', thought: "'작-'을 접사로 오인함.", fix: "'작-'은 '작다'의 어간으로서 실질 어근입니다." }
+                ],
+                misconceptionType: '강조 접두사를 어근으로 착각하는 오류'
+            },
+            {
+                id: 6,
+                category: '합성어 vs 파생어',
+                question: '다음 중 단어의 형성 방식(복합어 종류)이 나머지 셋과 다른 하나는?',
+                options: ['돌다리', '힘겹다', '맨발', '손발'],
+                correct: 2,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "'돌다리'를 파생어로 착각함.", fix: "돌(어근) + 다리(어근) = 합성어입니다." },
+                    { choice: '②번', status: 'X', thought: "'힘겹다'를 파생어로 착각함.", fix: "힘(어근) + 겹다(어근) = 합성어입니다." },
+                    { choice: '③번', status: 'O (정답)', thought: "'맨-'이 접사임을 바르게 파악하여 파생어를 골라냄.", fix: "맨(접사) + 발(어근) = 파생어입니다. 나머지 셋은 모두 합성어!" },
+                    { choice: '④번', status: 'X', thought: "'손발'을 파생어로 착각함.", fix: "손(어근) + 발(어근) = 합성어입니다." }
+                ],
+                misconceptionType: '파생어와 합성어 구별 오류'
+            },
+            {
+                id: 7,
+                category: '접미사의 파생',
+                question: '단어 \'지우개\'의 형성 구조에 대한 설명으로 가장 올바른 것은?',
+                options: [
+                    '어근 \'지우-\'에 명사 파생 접미사 \'-개\'가 결합한 파생어이다.',
+                    '두 개의 명사 어근이 결합한 합성어이다.',
+                    '어간 \'지우-\'에 어말 어미 \'-개\'가 결합한 단일어이다.',
+                    '접두사 \'지-\'에 어근 \'우개\'가 결합한 파생어이다.'
+                ],
+                correct: 0,
+                misconceptions: [
+                    { choice: '①번', status: 'O (정답)', thought: "어간 어근에 접미사가 붙어 도구 명사가 된 구조를 정확히 이해함.", fix: "동사 어근 '지우-' + 도구 파생 접미사 '-개' = 파생어입니다." },
+                    { choice: '②번', status: 'X', thought: "'지우'와 '개'를 모두 독립된 단어로 오인함.", fix: "'-개'는 혼자 쓰이지 못하는 접미사입니다." },
+                    { choice: '③번', status: 'X', thought: "접미사 '-개'를 문장 활용 시 쓰이는 어미로 착각함.", fix: "어미는 활용을 할 뿐 새로운 단어를 만들지 못하지만, '-개'는 새 단어를 만듭니다." },
+                    { choice: '④번', status: 'X', thought: "단어의 형태소를 엉뚱하게 분리함.", fix: "바른 형태소 분석은 '지우-' + '-개'입니다." }
+                ],
+                misconceptionType: '접미사와 어미의 혼동'
+            },
+            {
+                id: 8,
+                category: '종합 응용',
+                question: '단어 \'풋사과\'를 형태소 분석하고 짜임을 설명한 내용으로 알맞은 것은?',
+                options: [
+                    '2개의 자립 형태소로 이루어진 합성어이다.',
+                    '1개의 접두사와 1개의 어근으로 이루어진 파생어이다.',
+                    '1개의 실질 형태소와 1개의 형식 형태소로 이루어진 합성어이다.',
+                    '2개의 의존 형태소로 이루어진 파생어이다.'
+                ],
+                correct: 1,
+                misconceptions: [
+                    { choice: '①번', status: 'X', thought: "'풋'이 단어로 존재하는 것으로 오인함.", fix: "'풋-'은 자립성이 없는 접두사입니다." },
+                    { choice: '②번', status: 'O (정답)', thought: "접사('풋-')와 어근('사과')의 결합을 바르게 판별함.", fix: "접두사 '풋-' + 어근 '사과' = 파생어입니다." },
+                    { choice: '③번', status: 'X', thought: "접사가 포함되었는데 합성어라고 잘못 칭함.", fix: "접사가 들어간 복합어는 합성어가 아니라 파생어입니다." },
+                    { choice: '④번', status: 'X', thought: "'사과'가 자립 형태소임을 간과함.", fix: "'사과'는 자립 형태소이자 실질 형태소입니다." }
+                ],
+                misconceptionType: '형태소 구조 분석과 단어 유형 종합 오류'
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let quizUserAnswers = [];
+
+        function renderQuestion() {
+            const q = quizData[currentQuizIndex];
+            document.getElementById('quiz-progress-text').innerText = `문제 ${currentQuizIndex + 1} / ${quizData.length}`;
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuizIndex + 1) / quizData.length) * 100}%`;
+            document.getElementById('quiz-category-tag').innerText = q.category;
+            document.getElementById('quiz-question-text').innerText = q.question;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = q.options.map((opt, idx) => `
+                <button onclick="selectAnswer(${idx})" class="quiz-opt-btn w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex items-center justify-between text-sm font-medium text-slate-800">
+                    <span>${idx + 1}. ${opt}</span>
+                    <i data-lucide="circle" class="w-4 h-4 text-slate-300"></i>
+                </button>
+            `).join('');
+
+            document.getElementById('quiz-explanation-box').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function selectAnswer(selectedIndex) {
+            const q = quizData[currentQuizIndex];
+            const isCorrect = selectedIndex === q.correct;
+            
+            // Save state
+            quizUserAnswers[currentQuizIndex] = {
+                selectedIndex,
+                isCorrect,
+                misconceptionType: q.misconceptionType
+            };
+
+            // Disable buttons and highlight
+            const buttons = document.querySelectorAll('.quiz-opt-btn');
+            buttons.forEach((btn, idx) => {
+                btn.disabled = true;
+                btn.classList.remove('hover:border-indigo-500', 'hover:bg-indigo-50/50');
+                if (idx === q.correct) {
+                    btn.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-900', 'font-bold');
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.classList.add('bg-rose-50', 'border-rose-500', 'text-rose-900');
+                }
+            });
+
+            // Show explanation table
+            showQuizExplanation(q, selectedIndex, isCorrect);
+        }
+
+        function showQuizExplanation(q, selectedIndex, isCorrect) {
+            const box = document.getElementById('quiz-explanation-box');
+            const banner = document.getElementById('quiz-feedback-banner');
+            const tableBody = document.getElementById('quiz-explanation-table-body');
+
+            box.classList.remove('hidden');
+
+            if (isCorrect) {
+                banner.className = "p-3 rounded-lg flex items-center gap-2 font-bold text-sm bg-emerald-100 text-emerald-900";
+                banner.innerHTML = `<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i> 정답입니다! 개념을 올바르게 이해하고 계시네요.`;
+            } else {
+                banner.className = "p-3 rounded-lg flex items-center gap-2 font-bold text-sm bg-rose-100 text-rose-900";
+                banner.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i> 오답입니다! 아래 오개념 해설 표를 확인해 보세요.`;
+            }
+
+            // Populate Table
+            tableBody.innerHTML = q.misconceptions.map((m, idx) => `
+                <tr class="${idx === selectedIndex ? (isCorrect ? 'bg-emerald-50/70' : 'bg-rose-50/70') : ''}">
+                    <td class="p-2.5 border border-slate-200 text-center font-bold">${m.choice}</td>
+                    <td class="p-2.5 border border-slate-200 text-center font-bold ${m.status.includes('O') ? 'text-emerald-600' : 'text-rose-600'}">${m.status}</td>
+                    <td class="p-2.5 border border-slate-200 text-slate-600">${m.thought}</td>
+                    <td class="p-2.5 border border-slate-200 text-slate-800 font-medium">${m.fix}</td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function nextQuestion() {
+            if (currentQuizIndex < quizData.length - 1) {
+                currentQuizIndex++;
+                renderQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('quiz-header').classList.add('hidden');
+            const resultScreen = document.getElementById('quiz-result-screen');
+            resultScreen.classList.remove('hidden');
+
+            const correctCount = quizUserAnswers.filter(a => a && a.isCorrect).length;
+            const score = Math.round((correctCount / quizData.length) * 100);
+
+            document.getElementById('final-score').innerText = `${score}점`;
+            document.getElementById('final-correct-count').innerText = `${correctCount} / ${quizData.length}`;
+
+            // Analyze Weakness
+            const wrongAnswers = quizUserAnswers.filter(a => a && !a.isCorrect);
+            const reportBox = document.getElementById('misconception-report');
+
+            if (wrongAnswers.length === 0) {
+                reportBox.innerHTML = `
+                    <p class="font-bold text-emerald-700">🎉 축하합니다! 완벽합니다!</p>
+                    <p>형태소 분석 및 단어 형성 법칙에 대한 오개념이 전혀 없습니다. 고등학교 국어 문법 마스터입니다!</p>
+                `;
+            } else {
+                const types = wrongAnswers.map(w => w.misconceptionType);
+                reportBox.innerHTML = `
+                    <p class="font-semibold text-rose-800">선생님 피드백: 아래 개념들을 다시 한 번 점검해 보세요!</p>
+                    <ul class="list-disc pl-4 space-y-1 mt-1 text-slate-700">
+                        ${types.map(t => `<li><strong>${t}</strong>에서 오개념이 감지되었습니다.</li>`).join('')}
+                    </ul>
+                `;
+            }
+        }
+
+        function restartQuiz() {
+            currentQuizIndex = 0;
+            quizUserAnswers = [];
+            document.getElementById('quiz-container').classList.remove('hidden');
+            document.getElementById('quiz-header').classList.remove('hidden');
+            document.getElementById('quiz-result-screen').classList.add('hidden');
+            renderQuestion();
+        }
+
+        // Window Load Initializations
+        window.onload = function() {
+            resetMorphologyPractice();
+            renderAssemblyBlocks();
+            renderQuestion();
+        };
+    </script>
+</body>
+</html>
